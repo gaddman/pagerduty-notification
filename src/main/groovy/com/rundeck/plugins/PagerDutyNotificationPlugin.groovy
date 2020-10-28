@@ -1,20 +1,20 @@
 package com.rundeck.plugins
 
 import com.dtolabs.rundeck.core.plugins.Plugin
-import com.dtolabs.rundeck.core.plugins.configuration.PropertyScope;
+import com.dtolabs.rundeck.core.plugins.configuration.PropertyScope
 import com.dtolabs.rundeck.plugins.descriptions.PluginDescription
 import com.dtolabs.rundeck.plugins.descriptions.PluginProperty
-import com.dtolabs.rundeck.plugins.descriptions.SelectValues;
+import com.dtolabs.rundeck.plugins.descriptions.SelectValues
 import com.dtolabs.rundeck.plugins.notification.NotificationPlugin
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import okhttp3.Credentials;
-import okhttp3.Interceptor;
-import okhttp3.OkHttpClient;
+import okhttp3.Credentials
+import okhttp3.Interceptor
+import okhttp3.OkHttpClient
 import okhttp3.Request
-import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 
 /**
@@ -30,7 +30,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 
 @Plugin(service="Notification", name="PagerDutyNotification")
-@PluginDescription(title="PagerDuty", description="Create a Trigger event.")
+@PluginDescription(title="PagerDuty", description="Create a PagerDuty event.")
 public class PagerDutyNotificationPlugin implements NotificationPlugin {
 
     final static String PAGERDUTY_URL = "https://events.pagerduty.com"
@@ -42,10 +42,12 @@ public class PagerDutyNotificationPlugin implements NotificationPlugin {
     @PluginProperty(title = "Integration Key", description = "Integration Key. If not provided will default to your team's integration key (which must have been setup prior).", required = true, scope = PropertyScope.Instance)
     private String integration_key;
 
-    @PluginProperty(title = "Severity", description = "Alert severity. If not provided will default to: info for start/success, error for failure, warning otherwise.", required = false, values = ["Critical","Error", "Warning", "Info"])
+    @PluginProperty(title = "Severity", description = "Alert severity. If not provided will default to: info for start/success, error for failure, warning otherwise.", required = false)
+    @SelectValues(freeSelect = false, values = {"Critical","Error", "Warning", "Info"})
     private String severity;
 
-    @PluginProperty(title = "Action", description = "Alert action. If not provided will default to: Resolve for success, Trigger otherwise.", required = false, values = ["Trigger","Resolve"])
+    @PluginProperty(title = "Action", description = "Alert action. If not provided will default to: Resolve for success, Trigger otherwise.", required = false)
+    @SelectValues(freeSelect = false, values = {"Trigger","Resolve"})
     private String status;
 
     @PluginProperty(title = "Proxy host", description = "Outbound proxy host", required = false, scope = PropertyScope.Framework)
