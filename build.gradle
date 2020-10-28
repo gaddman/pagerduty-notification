@@ -13,7 +13,7 @@ plugins {
 group 'com.rundeck.plugin'
 version '1.0-SNAPSHOT'
 
-// apply plugin: 'groovy'
+apply plugin: 'groovy'
 apply plugin: 'java'
 apply plugin: 'pl.allegro.tech.build.axion-release'
 

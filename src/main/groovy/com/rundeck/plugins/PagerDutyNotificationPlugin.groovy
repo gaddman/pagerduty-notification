@@ -42,12 +42,12 @@ public class PagerDutyNotificationPlugin implements NotificationPlugin {
     @PluginProperty(title = "Integration Key", description = "Integration Key. If not provided will default to your team's integration key (which must have been setup prior).", required = true, scope = PropertyScope.Instance)
     private String integration_key;
 
-    @PluginProperty(title = "Severity", description = "Alert severity. If not provided will default to: info for start/success, error for failure, warning otherwise.", required = false)
-    @SelectValues(freeSelect = false, values = {"Critical","Error", "Warning", "Info"})
+    @PluginProperty(title = "Severity", description = "Alert severity", required = true, defaultValue = "Error")
+    @SelectValues(freeSelect = false, values = ["Critical", "Error", "Warning", "Info"])
     private String severity;
 
-    @PluginProperty(title = "Action", description = "Alert action. If not provided will default to: Resolve for success, Trigger otherwise.", required = false)
-    @SelectValues(freeSelect = false, values = {"Trigger","Resolve"})
+    @PluginProperty(title = "Action", description = "Alert action. Trigger to raise an alert, Resolve to clear.", required = true, defaultValue = "Trigger")
+    @SelectValues(freeSelect = false, values = ["Trigger", "Resolve"])
     private String status;
 
     @PluginProperty(title = "Proxy host", description = "Outbound proxy host", required = false, scope = PropertyScope.Framework)
@@ -84,7 +84,7 @@ public class PagerDutyNotificationPlugin implements NotificationPlugin {
 
         PagerDutyApi apiService = retrofit.create(PagerDutyApi.class)
 
-        apiV2(trigger,apiService, executionData)
+        callAPI(trigger,apiService, executionData)
     }
 
 
@@ -112,27 +112,8 @@ public class PagerDutyNotificationPlugin implements NotificationPlugin {
     }
 
 
-    def apiV2(String trigger,PagerDutyApi apiService, Map executionData){
+    def callAPI(String trigger,PagerDutyApi apiService, Map executionData){
         def expandedSubject = subjectString(subject, [execution:executionData])
-
-        if (severity == null || severity.isEmpty()){
-            if (trigger=="start" || trigger=="success"){
-                severity="info"
-            }else if(trigger=="failure" ){
-                severity="error"
-            }else{
-                severity="warning"
-            }
-        }
-        
-        if (status == null || status.isEmpty()){
-            if (trigger=="success"){
-                status="resolve"
-            }else{
-                status="trigger"
-            }
-        }
-
 
         def date
         if (trigger=="start" || trigger=="avgduration"){
@@ -170,7 +151,7 @@ public class PagerDutyNotificationPlugin implements NotificationPlugin {
 
         ]
 
-        Response<PagerResponse> response = apiService.sendEventV2(job_data).execute()
+        Response<PagerResponse> response = apiService.sendEvent(job_data).execute()
         if(response.errorBody()!=null){
             println "Error body:" + response.errorBody().string()
         }else{
