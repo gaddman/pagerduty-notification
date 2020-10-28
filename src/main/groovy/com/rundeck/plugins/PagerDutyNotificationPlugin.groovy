@@ -18,8 +18,17 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 
 /**
- * Created by luistoledo on 6/28/17.
+ * Raise PagerDuty alert using the v2 API
+ * 
+ * Although Rundeck provide a plugin, the free version does not
+ * support a unique service key per job, which we require.
+ * Forked from https://github.com/rundeck-plugins/pagerduty-notification
+ * 
+ * Chris Gadd
+ * 2020-10-28
  */
+
+
 @Plugin(service="Notification", name="PagerDutyNotification")
 @PluginDescription(title="PagerDuty", description="Create a Trigger event.")
 public class PagerDutyNotificationPlugin implements NotificationPlugin {
@@ -27,19 +36,22 @@ public class PagerDutyNotificationPlugin implements NotificationPlugin {
     final static String PAGERDUTY_URL = "https://events.pagerduty.com"
     final static String SUBJECT_LINE='${job.status} [${job.project}] \"${job.name}\" run by ${job.user} (#${job.execid}) [ ${job.href} ]'
 
-    @PluginProperty(title = "subject", description = "Incident subject line", required = false, defaultValue=PagerDutyNotificationPlugin.SUBJECT_LINE)
+    @PluginProperty(title = "subject", description = "Incident subject line", required = false, defaultValue = PagerDutyNotificationPlugin.SUBJECT_LINE)
     private String subject;
 
-    @PluginProperty(title = "version", description = "API version: v1 or v2", required = true, defaultValue="v1", scope=PropertyScope.Project)
-    private String version;
+    @PluginProperty(title = "Integration Key", description = "Integration Key. If not provided will default to your team's integration key (which must have been setup prior).", required = true, scope = PropertyScope.Instance)
+    private String integration_key;
 
-    @PluginProperty(title = "Service API/Integration Key", description = "Service API Key or Integration Key (v2)", required = true, scope=PropertyScope.Project)
-    private String service_key;
+    @PluginProperty(title = "Severity", description = "Alert severity. If not provided will default to: info for start/success, error for failure, warning otherwise.", required = false, values = ["Critical","Error", "Warning", "Info"])
+    private String severity;
 
-    @PluginProperty(title = "Proxy host", description = "Outbound prox", required = false, scope=PropertyScope.Project)
+    @PluginProperty(title = "Action", description = "Alert action. If not provided will default to: Resolve for success, Trigger otherwise.", required = false, values = ["Trigger","Resolve"])
+    private String status;
+
+    @PluginProperty(title = "Proxy host", description = "Outbound proxy host", required = false, scope = PropertyScope.Framework)
     private String proxy_host;
 
-    @PluginProperty(title = "Proxy port", description = "Outbound proxy port", required = false, scope=PropertyScope.Project)
+    @PluginProperty(title = "Proxy port", description = "Outbound proxy port", required = false, scope = PropertyScope.Framework)
     private String proxy_port;
 
 
@@ -70,12 +82,7 @@ public class PagerDutyNotificationPlugin implements NotificationPlugin {
 
         PagerDutyApi apiService = retrofit.create(PagerDutyApi.class)
 
-        if(version=="v1"){
-            apiV1(trigger,apiService, executionData)
-
-        }else{
-            apiV2(trigger,apiService, executionData)
-        }
+        apiV2(trigger,apiService, executionData)
     }
 
 
@@ -103,44 +110,27 @@ public class PagerDutyNotificationPlugin implements NotificationPlugin {
     }
 
 
-    def apiV1(String trigger,PagerDutyApi apiService, Map executionData){
-        def expandedSubject = subjectString(subject.empty==false?subject:SUBJECT_LINE, [execution:executionData])
-        def job_data = [
-                event_type: 'trigger',
-                service_key: service_key,
-                description: expandedSubject,
-                details:[
-                        job: executionData.job.name,
-                        group: executionData.job.group,
-                        description: executionData.job.description,
-                        project: executionData.job.project,
-                        user: executionData.user,
-                        status: executionData.status,
-                        link: executionData.href,
-                        trigger: trigger
-                ]
-        ]
-
-        Response<PagerResponse> response = apiService.sendEvent(job_data).execute()
-        if(response.errorBody()!=null){
-            println "Error body:" + response.errorBody().string()
-        }else{
-            println("DEBUG: response: "+response)
-        }
-    }
-
-
     def apiV2(String trigger,PagerDutyApi apiService, Map executionData){
         def expandedSubject = subjectString(subject, [execution:executionData])
 
-        def severity
-        if (trigger=="start" || trigger=="success"){
-            severity="info"
-        }else if(trigger=="failure" ){
-            severity="error"
-        }else{
-            severity="warning"
+        if (severity == null || severity.isEmpty()){
+            if (trigger=="start" || trigger=="success"){
+                severity="info"
+            }else if(trigger=="failure" ){
+                severity="error"
+            }else{
+                severity="warning"
+            }
         }
+        
+        if (status == null || status.isEmpty()){
+            if (trigger=="success"){
+                status="resolve"
+            }else{
+                status="trigger"
+            }
+        }
+
 
         def date
         if (trigger=="start" || trigger=="avgduration"){
@@ -149,18 +139,21 @@ public class PagerDutyNotificationPlugin implements NotificationPlugin {
             date = executionData.dateEndedW3c
         }
 
+        def host = InetAddress.getLocalHost().getHostName()
+        // use the job ID converted to 32bit positive integer as the alert ID so we have something consistent for de-duplication
+        def job_id = "$executionData.job.id".hashCode() & 0x7fffffff
+
         def job_data = [
-            event_action: 'trigger',
-            routing_key: service_key,
-            dedup_key: executionData.id+"-"+trigger,
+            event_action: status.toLowerCase(),
+            routing_key: integration_key,
+            dedup_key: job_id,
             payload: [
                     summary: expandedSubject,
-                    source: "Project " + executionData.project,
-                    severity: severity,
+                    source: "Rundeck on " + host,
+                    severity: severity.toLowerCase(),
                     timestamp: date,
                     group: executionData.job.name,
-                    custom_details:[job: executionData.job.name,
-                             group: executionData.job.group,
+                    custom_details:[job: executionData.job.group + "/" + executionData.job.name,
                              description: executionData.job.description,
                              project: executionData.job.project,
                              user: executionData.user,
