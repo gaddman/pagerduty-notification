@@ -123,13 +123,11 @@ public class PagerDutyNotificationPlugin implements NotificationPlugin {
         }
 
         def host = InetAddress.getLocalHost().getHostName()
-        // use the job ID converted to 32bit positive integer as the alert ID so we have something consistent for de-duplication
-        def job_id = "$executionData.job.id".hashCode() & 0x7fffffff
 
         def job_data = [
             event_action: status.toLowerCase(),
             routing_key: integration_key,
-            dedup_key: job_id,
+            dedup_key: executionData.job.id,
             payload: [
                     summary: expandedSubject,
                     source: "Rundeck on " + host,
