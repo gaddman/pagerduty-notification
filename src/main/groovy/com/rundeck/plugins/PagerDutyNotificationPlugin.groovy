@@ -34,7 +34,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 public class PagerDutyNotificationPlugin implements NotificationPlugin {
 
     final static String PAGERDUTY_URL = "https://events.pagerduty.com"
-    final static String SUBJECT_LINE='${job.status} [${job.project}] \"${job.name}\" run by ${job.user} (#${job.execid}) [ ${job.href} ]'
+    final static String SUBJECT_LINE='${job.group}/${job.status} \"${job.name}\" run by ${job.user} (#${job.execid})'
 
     @PluginProperty(title = "subject", description = "Incident subject line", required = false, defaultValue = PagerDutyNotificationPlugin.SUBJECT_LINE)
     private String subject;
@@ -77,7 +77,7 @@ public class PagerDutyNotificationPlugin implements NotificationPlugin {
             System.getProperties().put("proxyPort", proxy_port)
         }
 
-         Retrofit retrofit = new Retrofit.Builder()
+        Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(PAGERDUTY_URL)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
@@ -134,12 +134,14 @@ public class PagerDutyNotificationPlugin implements NotificationPlugin {
                     severity: severity.toLowerCase(),
                     timestamp: date,
                     group: executionData.job.name,
-                    custom_details:[job: executionData.job.group + "/" + executionData.job.name,
-                             description: executionData.job.description,
-                             project: executionData.job.project,
-                             user: executionData.user,
-                             status: executionData.status,
-                             trigger: trigger
+                    custom_details:[
+                        job: executionData.job.group + "/" + executionData.job.name,
+                        project: executionData.job.project,
+                        user: executionData.user,
+                        status: executionData.status,
+                        trigger: trigger,
+                        failedNodes: execution.failedNodeListString,
+                        succeededNodes: execution.succeededNodeListString
                     ]
             ],
             links:[
