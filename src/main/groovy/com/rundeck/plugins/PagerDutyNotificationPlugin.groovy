@@ -140,8 +140,8 @@ public class PagerDutyNotificationPlugin implements NotificationPlugin {
                         user: executionData.user,
                         status: executionData.status,
                         trigger: trigger,
-                        failedNodes: execution.failedNodeListString,
-                        succeededNodes: execution.succeededNodeListString
+                        failedNodes: executionData.failedNodeListString,
+                        succeededNodes: executionData.succeededNodeListString
                     ]
             ],
             links:[
