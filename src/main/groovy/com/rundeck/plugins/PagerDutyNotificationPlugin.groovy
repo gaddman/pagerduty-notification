@@ -34,7 +34,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 public class PagerDutyNotificationPlugin implements NotificationPlugin {
 
     final static String PAGERDUTY_URL = "https://events.pagerduty.com"
-    final static String SUBJECT_LINE='${job.group}/${job.status} \"${job.name}\" run by ${job.user} (#${job.execid})'
+    final static String SUBJECT_LINE='${job.status} \"${job.group}/${job.name}\" run by ${job.user} (#${job.execid})'
 
     @PluginProperty(title = "subject", description = "Incident subject line", required = false, defaultValue = PagerDutyNotificationPlugin.SUBJECT_LINE)
     private String subject;
