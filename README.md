@@ -1,5 +1,5 @@
-Use this [notification](http://rundeck.org/docs/developer/notification-plugin-development.html)
-plugin to send [trigger](http://developer.pagerduty.com/documentation/integration/events/trigger)
+Use this [notification](https://docs.rundeck.com/docs/developer/05-notification-plugins.html)
+plugin to send [alert](https://developer.pagerduty.com/docs/events-api-v2/trigger-events/)
 events to your [PagerDuty](https://pagerduty.com) service.
 
 The plugin requires one parameter:

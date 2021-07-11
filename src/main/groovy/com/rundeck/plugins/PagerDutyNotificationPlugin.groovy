@@ -127,7 +127,7 @@ public class PagerDutyNotificationPlugin implements NotificationPlugin {
         def job_data = [
             event_action: status.toLowerCase(),
             routing_key: integration_key,
-            dedup_key: executionData.job.id,
+            dedup_key: (executionData.job.id + executionData.failedNodeListString).take(255),
             payload: [
                     summary: expandedSubject,
                     source: "Rundeck on " + host,
